@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Drop Out Predictor - Light Mode</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            padding: 0;
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+        }
+        body {
+            background: linear-gradient(to bottom right, #a3f0c9, #ace8ec, #b1ede3, #9ee5ec);
+            color: #333;
+            font-size: 16px;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .container {
+            background: #fff;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 1000px;
+            width: 100%;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #007bff;
+        }
+        form {
+            display: grid;
+            gap: 15px;
+        }
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            outline: none;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        .btn {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            text-align: center;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .risk-output {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 18px;
+        }
+        .low-risk {
+            background-color: #28a745;
+            color: #fff;
+        }
+        .medium-risk {
+            background-color: #ffc107;
+            color: #333;
+        }
+        .high-risk {
+            background-color: #dc3545;
+            color: #fff;
+        }
+        .sample-data {
+            margin-top: 30px;
+            border-collapse: collapse;
+            width: 100%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .sample-data th, .sample-data td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .sample-data th {
+            background-color: #007bff;
+            color: #fff;
+        }
+        .download-btn {
+            margin-top: 20px;
+            background-color: #28a745;
+            color: #fff;
+        }
+        .chart-container {
+            margin-top: 30px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .suggestions {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #ffebcc;
+            color: #663300;
+            text-align: center;
+            font-size: 16px;
+        }
+        .notification-btn {
+            background-color: #e63946;
+            color: white;
+            font-size: 16px;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .notification-btn:hover {
+            background-color: #d62828;
+        }
+
+        .delete-btn {
+            background-color: #f44336;
+            color: white;
+            font-size: 16px;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .delete-btn:hover {
+            background-color: #d32f2f;
+        }
+
+        .individual-delete-btn {
+            background-color: #f44336;
+            color: white;
+            font-size: 14px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .individual-delete-btn:hover {
+            background-color: #d32f2f;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                width: 90%;
+            }
+            .chart-container {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Student Drop Out Predictor</h1>
+        <form id="predictorForm">
+            <label for="name">Student Name</label>
+            <input type="text" id="name" placeholder="e.g., John Doe" required>
+
+            <label for="attendance">Attendance Rate (%)</label>
+            <input type="number" id="attendance" min="0" max="100" placeholder="e.g., 85" required>
+
+            <label for="grades">Average Grades (%)</label>
+            <input type="number" id="grades" min="0" max="100" placeholder="e.g., 70" required>
+
+            <label for="participation">Participation Level (1 to 10)</label>
+            <input type="number" id="participation" min="1" max="10" placeholder="e.g., 8" required>
+
+            <label for="extracurricular">Extracurricular Activities Involvement</label>
+            <select id="extracurricular" required>
+                <option value="">Select...</option>
+                <option value="high">High</option>
+                <option value="moderate">Moderate</option>
+                <option value="low">Low</option>
+            </select>
+
+            <button type="button" class="btn" onclick="predictRisk()">Predict Risk</button>
+        </form>
+
+        <div id="riskOutput" class="risk-output"></div>
+
+        <div class="chart-container">
+            <canvas id="riskChart"></canvas>
+        </div>
+
+        <h2>Student Data & Drop Out Risk</h2>
+        <table class="sample-data" id="sampleDataTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Attendance (%)</th>
+                    <th>Grades (%)</th>
+                    <th>Participation (1-10)</th>
+                    <th>Extracurricular</th>
+                    <th>Risk Level</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Sample data will be inserted here dynamically -->
+            </tbody>
+        </table>
+
+        <button class="btn download-btn" onclick="downloadReport()">Download Risk Report</button>
+
+        <div id="suggestions" class="suggestions"></div>
+
+        <button class="delete-btn" onclick="deleteAllData()">Delete All Data</button>
+    </div>
+
+    <script>
+        const savedStudents = JSON.parse(localStorage.getItem('students')) || [];
+        const savedChartData = JSON.parse(localStorage.getItem('chartData')) || { low: 0, medium: 0, high: 0 };
+
+        function calculateRisk(student) {
+            let riskScore = 0;
+
+            if (student.attendance < 60) riskScore += 3;
+            else if (student.attendance < 80) riskScore += 2;
+            else riskScore += 1;
+
+            if (student.grades < 50) riskScore += 3;
+            else if (student.grades < 70) riskScore += 2;
+            else riskScore += 1;
+
+            if (student.participation < 4) riskScore += 3;
+            else if (student.participation < 7) riskScore += 2;
+            else riskScore += 1;
+
+            if (student.extracurricular === "low") riskScore += 3;
+            else if (student.extracurricular === "moderate") riskScore += 2;
+            else riskScore += 1;
+
+            if (riskScore <= 5) return "Low Risk";
+            else if (riskScore <= 8) return "Medium Risk";
+            else return "High Risk";
+        }
+
+        function predictRisk() {
+            const name = document.getElementById("name").value;
+            const attendance = parseInt(document.getElementById("attendance").value);
+            const grades = parseInt(document.getElementById("grades").value);
+            const participation = parseInt(document.getElementById("participation").value);
+            const extracurricular = document.getElementById("extracurricular").value;
+
+            const student = { name, attendance, grades, participation, extracurricular };
+            const riskLevel = calculateRisk(student);
+
+            const riskOutput = document.getElementById("riskOutput");
+            riskOutput.textContent = `${name} - Drop Out Risk: ${riskLevel}`;
+            riskOutput.className = `risk-output ${riskLevel.toLowerCase().replace(" ", "-")}`;
+
+            if (riskLevel === "High Risk") {
+                document.getElementById("suggestions").textContent = `${name}, it is highly recommended to improve attendance, seek academic support, and engage in extracurricular activities to reduce drop-out risk.`;
+            } else {
+                document.getElementById("suggestions").textContent = "";
+            }
+
+            savedStudents.push(student);
+            localStorage.setItem('students', JSON.stringify(savedStudents));
+
+            populateSampleData();
+            updatePieChart();
+        }
+
+        function populateSampleData() {
+            const tableBody = document.getElementById("sampleDataTable").querySelector("tbody");
+            tableBody.innerHTML = "";
+
+            savedStudents.forEach((student, index) => {
+                const riskLevel = calculateRisk(student);
+                const row = document.createElement("tr");
+
+                row.innerHTML = `
+                    <td>${student.name}</td>
+                    <td>${student.attendance}</td>
+                    <td>${student.grades}</td>
+                    <td>${student.participation}</td>
+                    <td>${student.extracurricular}</td>
+                    <td>${riskLevel}</td>
+                    <td>
+                        <button class="individual-delete-btn" onclick="deleteStudent(${index})">Delete</button>
+                        ${riskLevel === "High Risk" ? 
+                            `<button class="notification-btn" onclick="sendMessage('${student.name}')">Send Message</button>` : ''}
+                    </td>
+                `;
+                
+                if (riskLevel === "High Risk") {
+                    row.style.backgroundColor = "#ffcccc";
+                }
+
+                tableBody.appendChild(row);
+            });
+        }
+
+        function updatePieChart() {
+            const riskCounts = { "Low Risk": 0, "Medium Risk": 0, "High Risk": 0 };
+
+            savedStudents.forEach(student => {
+                const riskLevel = calculateRisk(student);
+                riskCounts[riskLevel]++;
+            });
+
+            const ctx = document.getElementById('riskChart').getContext('2d');
+            if (window.riskChart) {
+                window.riskChart.destroy();
+            }
+            window.riskChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Low Risk', 'Medium Risk', 'High Risk'],
+                    datasets: [{
+                        data: [riskCounts['Low Risk'], riskCounts['Medium Risk'], riskCounts['High Risk']],
+                        backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            localStorage.setItem('chartData', JSON.stringify(riskCounts));
+        }
+
+        function sendMessage(studentName) {
+            alert(`Message sent to ${studentName}: High risk of drop-out!`);
+        }
+
+        function deleteAllData() {
+            if (confirm("Are you sure you want to delete all data?")) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        function deleteStudent(index) {
+            savedStudents.splice(index, 1);
+            localStorage.setItem('students', JSON.stringify(savedStudents));
+            populateSampleData();
+            updatePieChart();
+        }
+
+        function downloadReport() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Name,Attendance,Grades,Participation,Extracurricular,Risk Level\n";
+
+            savedStudents.forEach(student => {
+                const riskLevel = calculateRisk(student);
+                csvContent += `${student.name},${student.attendance},${student.grades},${student.participation},${student.extracurricular},${riskLevel}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "student_risk_report.csv");
+            document.body.appendChild(link);
+            link.click();
+        }
+
+        window.onload = function() {
+            populateSampleData();
+            updatePieChart();
+        };
+    </script>
+</body>
+</html>
